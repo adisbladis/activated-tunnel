@@ -1,5 +1,11 @@
 * Socket activated SSH tunnels
 
+** Motivation
+I want to use the equivalent of =ssh -L= and =ssh -D= but socket activated.
+
+This project is supposed to run in the context of a systemd unit.
+For usage see =activated-tunnel --help=.
+
 ** Hacking
 #+begin_src sh
 go build
