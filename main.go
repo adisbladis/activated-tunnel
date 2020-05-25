@@ -1,6 +1,7 @@
 package main // import "github.com/adisbladis/activated-tunnel"
 
 import (
+	"bytes"
 	"fmt"
 	"github.com/armon/go-socks5"
 	"golang.org/x/crypto/ssh"
@@ -127,12 +128,25 @@ func main() {
 		Port: 8080,
 	}
 
+	hostKey, err := getHostKey(serverEndpoint.String())
+	if err != nil {
+		panic(err)
+	}
+
+	hostKeyCallback := func(hostname string, remote net.Addr, key ssh.PublicKey) error {
+		if bytes.Compare(key.Marshal(), hostKey.Marshal()) == 0 {
+			return nil
+		}
+		return fmt.Errorf("Host key mismatch")
+	}
+
 	sshConfig := &ssh.ClientConfig{
 		User: "adisbladis",
 		Auth: []ssh.AuthMethod{
 			SSHAgent(),
 		},
-		HostKeyCallback: ssh.InsecureIgnoreHostKey(),
+		HostKeyCallback:   hostKeyCallback,
+		HostKeyAlgorithms: []string{hostKey.Type()},
 	}
 
 	tunnel := &SSHtunnel{
