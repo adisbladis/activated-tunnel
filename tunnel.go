@@ -21,10 +21,10 @@ func (endpoint *Endpoint) String() string {
 }
 
 type SSHtunnel struct {
-	Server *Endpoint
-	Remote *Endpoint
-
-	Config *ssh.ClientConfig
+	Server    *Endpoint
+	Remote    *Endpoint
+	Config    *ssh.ClientConfig
+	Forwarder func(*ssh.Client, net.Conn)
 }
 
 func (tunnel *SSHtunnel) Start() error {
@@ -62,8 +62,7 @@ func (tunnel *SSHtunnel) Start() error {
 		select {
 		case c := <-connections:
 			go func() {
-				// tunnel.forward(serverConn, c)
-				tunnel.forwardSocks(serverConn, c)
+				tunnel.Forwarder(serverConn, c)
 			}()
 		}
 	}
@@ -88,7 +87,7 @@ func (tunnel *SSHtunnel) forwardSocks(serverConn *ssh.Client, localConn net.Conn
 	server.ServeConn(localConn)
 }
 
-func (tunnel *SSHtunnel) forward(serverConn *ssh.Client, localConn net.Conn) {
+func (tunnel *SSHtunnel) forwardPort(serverConn *ssh.Client, localConn net.Conn) {
 	remoteConn, err := serverConn.Dial("tcp", tunnel.Remote.String())
 	if err != nil {
 		fmt.Printf("Remote dial error: %s\n", err)

@@ -3,22 +3,88 @@ package main // import "github.com/adisbladis/activated-tunnel"
 import (
 	"bytes"
 	"fmt"
+	"github.com/urfave/cli/v2"
 	"golang.org/x/crypto/ssh"
 	"net"
+	"os"
+	"os/user"
 )
 
 func main() {
-	serverEndpoint := &Endpoint{
-		Host: "159.69.86.193",
-		Port: 22,
+
+	var username string
+
+	tunnel := &SSHtunnel{
+		Server: &Endpoint{},
+		Remote: &Endpoint{},
 	}
 
-	remoteEndpoint := &Endpoint{
-		Host: "localhost",
-		Port: 8080,
+	usr, err := user.Current()
+	if err != nil {
+		panic(err)
 	}
 
-	hostKey, err := getHostKey(serverEndpoint.String())
+	app := &cli.App{
+		Flags: []cli.Flag{
+			&cli.StringFlag{
+				Name:        "host",
+				Usage:       "Server address",
+				Required:    true,
+				Destination: &tunnel.Server.Host,
+			},
+			&cli.StringFlag{
+				Name:        "user",
+				Usage:       "Server username",
+				Value:       usr.Username,
+				Destination: &username,
+			},
+			&cli.IntFlag{
+				Name:        "port",
+				Value:       22,
+				Usage:       "Server port",
+				Destination: &tunnel.Server.Port,
+			},
+		},
+		Commands: []*cli.Command{
+			{
+				Name:  "port",
+				Usage: "Forward a single port on the remote (ssh -L)",
+				Flags: []cli.Flag{
+					&cli.StringFlag{
+						Name:        "host",
+						Usage:       "Remote host",
+						Value:       "localhost",
+						Destination: &tunnel.Remote.Host,
+					},
+					&cli.IntFlag{
+						Name:        "port",
+						Usage:       "Remote port",
+						Required:    true,
+						Destination: &tunnel.Remote.Port,
+					},
+				},
+				Action: func(c *cli.Context) error {
+					tunnel.Forwarder = tunnel.forwardPort
+					return nil
+				},
+			},
+			{
+				Name:  "socks",
+				Usage: "Run in SOCKS mode (ssh -D)",
+				Action: func(c *cli.Context) error {
+					tunnel.Forwarder = tunnel.forwardSocks
+					return nil
+				},
+			},
+		},
+	}
+
+	err = app.Run(os.Args)
+	if err != nil {
+		panic(err)
+	}
+
+	hostKey, err := getHostKey(tunnel.Server.String())
 	if err != nil {
 		panic(err)
 	}
@@ -31,7 +97,7 @@ func main() {
 	}
 
 	sshConfig := &ssh.ClientConfig{
-		User: "adisbladis",
+		User: username,
 		Auth: []ssh.AuthMethod{
 			SSHAgent(),
 		},
@@ -39,11 +105,7 @@ func main() {
 		HostKeyAlgorithms: []string{hostKey.Type()},
 	}
 
-	tunnel := &SSHtunnel{
-		Config: sshConfig,
-		Server: serverEndpoint,
-		Remote: remoteEndpoint,
-	}
+	tunnel.Config = sshConfig
 
 	tunnel.Start()
 }
