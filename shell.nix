@@ -3,6 +3,7 @@
 pkgs.mkShell {
   buildInputs = [
     pkgs.systemfd
+    pkgs.vgo2nix
     pkgs.go
   ];
 
