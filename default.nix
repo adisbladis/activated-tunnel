@@ -1,9 +1,6 @@
-{ pkgs ? import <nixpkgs> {} }:
+{ buildGoPackage, lib }:
 
-let
-  inherit (pkgs) lib;
-
-in pkgs.buildGoPackage {
+buildGoPackage {
   pname = "activated-tunnel";
   version = "0.1";
 

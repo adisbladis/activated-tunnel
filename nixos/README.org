@@ -1,0 +1,40 @@
+* NixOS module for socket activated SSH tunnels
+
+This is tested with home-manager but should work just the same as a global NixOS module
+
+** Example usage
+
+*** Single port forward:
+#+begin_src nix
+{ config, pkgs, ... }:
+{
+  import [ /path/to/this/directory ];
+
+  services.activated-tunnels = {
+    irc = {
+      host = "159.69.86.193";
+      bind = "127.0.0.1:5000";
+      type = "port";
+      portOptions = {
+        port = 5000;
+      };
+    };
+  };
+}
+#+end_src
+
+*** SOCKS proxy:
+#+begin_src nix
+{ config, pkgs, ... }:
+{
+  import [ /path/to/this/directory ];
+
+  services.activated-tunnels = {
+    proxy = {
+      host = "159.69.86.193";
+      bind = "127.0.0.1:8080";
+      type = "socks";
+    };
+  };
+}
+#+end_src
