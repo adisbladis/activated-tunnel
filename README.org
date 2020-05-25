@@ -1,0 +1,7 @@
+* Socket activated SSH tunnels
+
+** Hacking
+#+begin_src sh
+go build
+systemfd -s 5001 -- ./activated-tunnel
+#+end_src
