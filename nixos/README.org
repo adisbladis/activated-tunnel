@@ -8,7 +8,7 @@ This is tested with home-manager but should work just the same as a global NixOS
 #+begin_src nix
 { config, pkgs, ... }:
 {
-  import [ /path/to/this/directory ];
+  imports = [ /path/to/this/directory ];
 
   services.activated-tunnels = {
     irc = {
@@ -27,7 +27,7 @@ This is tested with home-manager but should work just the same as a global NixOS
 #+begin_src nix
 { config, pkgs, ... }:
 {
-  import [ /path/to/this/directory ];
+  imports = [ /path/to/this/directory ];
 
   services.activated-tunnels = {
     proxy = {
