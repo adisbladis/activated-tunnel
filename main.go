@@ -2,8 +2,10 @@ package main // import "github.com/adisbladis/activated-tunnel"
 
 import (
 	"fmt"
+	"github.com/armon/go-socks5"
 	"golang.org/x/crypto/ssh"
 	"golang.org/x/crypto/ssh/agent"
+	"golang.org/x/net/context"
 	"io"
 	"net"
 	"os"
@@ -51,11 +53,17 @@ func (tunnel *SSHtunnel) Start() error {
 		}(listener)
 	}
 
+	serverConn, err := ssh.Dial("tcp", tunnel.Server.String(), tunnel.Config)
+	if err != nil {
+		panic(err)
+	}
+
 	for {
 		select {
 		case c := <-connections:
 			go func() {
-				go tunnel.forward(c)
+				// tunnel.forward(serverConn, c)
+				tunnel.forwardSocks(serverConn, c)
 			}()
 		}
 	}
@@ -63,13 +71,24 @@ func (tunnel *SSHtunnel) Start() error {
 	return nil
 }
 
-func (tunnel *SSHtunnel) forward(localConn net.Conn) {
-	serverConn, err := ssh.Dial("tcp", tunnel.Server.String(), tunnel.Config)
-	if err != nil {
-		fmt.Printf("Server dial error: %s\n", err)
-		return
+func (tunnel *SSHtunnel) forwardSocks(serverConn *ssh.Client, localConn net.Conn) {
+
+	dial := func(ctx context.Context, net_, addr string) (net.Conn, error) {
+		return serverConn.Dial(net_, addr)
 	}
 
+	conf := &socks5.Config{
+		Dial: dial,
+	}
+	server, err := socks5.New(conf)
+	if err != nil {
+		panic(err)
+	}
+
+	server.ServeConn(localConn)
+}
+
+func (tunnel *SSHtunnel) forward(serverConn *ssh.Client, localConn net.Conn) {
 	remoteConn, err := serverConn.Dial("tcp", tunnel.Remote.String())
 	if err != nil {
 		fmt.Printf("Remote dial error: %s\n", err)
