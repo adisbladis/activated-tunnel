@@ -93,7 +93,7 @@ in {
           };
 
           Service = {
-            ExecStart = mkCommandline v;
+            ExecStart = lib.concatStringsSep " " (mkCommandline v);
             PrivateTmp = true;
             ProtectSystem = "strict";
             ProtectHome = "read-only";
